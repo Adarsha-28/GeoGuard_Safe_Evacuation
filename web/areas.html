@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoGuard - Area Risk List</title>
+    <link rel="stylesheet" href="areas.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <span class="logo-icon">🛡️</span>
+            <span>GeoGuard</span>
+        </div>
+        <nav class="nav">
+            <a href="index.html" class="nav-link">🏠 Dashboard</a>
+            <a href="areas.html" class="nav-link active">📍 Areas</a>
+            <a href="about.html" class="nav-link">ℹ️ About</a>
+            <a href="emergency.html" class="emergency-link">🚨 Emergency</a>
+            <a href="login.html" class="admin-link">🔒 Admin</a>
+        </nav>
+    </div>
+
+    <div class="main-container">
+        <div class="page-header">
+            <h1>📋 Chennai Area Flood Risk Assessment</h1>
+            <p>Complete list of all monitored areas with real-time flood risk status</p>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-group">
+                <label>Filter by Risk Level:</label>
+                <button class="filter-btn active" onclick="filterAreas('all')">All Areas</button>
+                <button class="filter-btn safe" onclick="filterAreas('Low')">✅ Safe</button>
+                <button class="filter-btn moderate" onclick="filterAreas('Moderate')">⚠️ Moderate</button>
+                <button class="filter-btn high" onclick="filterAreas('High')">🔶 High</button>
+                <button class="filter-btn severe" onclick="filterAreas('Severe')">🚨 Severe</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="areaSearch" placeholder="🔍 Search area..." onkeyup="searchAreas()">
+            </div>
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card safe">
+                <div class="summary-icon">✅</div>
+                <div class="summary-info">
+                    <h3 id="safeCount">0</h3>
+                    <p>Safe Areas</p>
+                </div>
+            </div>
+            <div class="summary-card moderate">
+                <div class="summary-icon">⚠️</div>
+                <div class="summary-info">
+                    <h3 id="moderateCount">0</h3>
+                    <p>Moderate Risk</p>
+                </div>
+            </div>
+            <div class="summary-card high">
+                <div class="summary-icon">🔶</div>
+                <div class="summary-info">
+                    <h3 id="highCount">0</h3>
+                    <p>High Risk</p>
+                </div>
+            </div>
+            <div class="summary-card severe">
+                <div class="summary-icon">🚨</div>
+                <div class="summary-info">
+                    <h3 id="severeCount">0</h3>
+                    <p>Severe Risk</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="areas-grid" id="areasGrid">
+            <!-- Areas will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>🛡️ GeoGuard</h4>
+                <p>Chennai Flood Risk Monitoring System</p>
+                <p>&copy; 2024 GeoGuard. All rights reserved.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="index.html">Dashboard</a>
+                <a href="areas.html">Area List</a>
+                <a href="about.html">About Us</a>
+                <a href="emergency.html">Emergency Contacts</a>
+                <a href="login.html">Admin Login</a>
+            </div>
+            <div class="footer-section">
+                <h4>Emergency</h4>
+                <p>🚑 Ambulance: 108</p>
+                <p>🔥 Fire: 101</p>
+                <p>👮 Police: 100</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>📧 info@geoguard.com</p>
+                <p>📞 044-2561-9206</p>
+                <p>📍 Chennai, Tamil Nadu</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="areas.js"></script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - GeoGuard</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            height: auto;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+        
+        .about-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .about-hero {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.95) 100%);
+            padding: 3rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+        
+        .about-hero h1 {
+            color: #0369a1;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .about-hero p {
+            color: #475569;
+            font-size: 1.2rem;
+            line-height: 1.8;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.95) 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(14, 165, 233, 0.25);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            color: #0369a1;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .feature-card p {
+            color: #475569;
+            line-height: 1.6;
+        }
+        
+        .tech-stack {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.95) 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            margin-bottom: 2rem;
+        }
+        
+        .tech-stack h2 {
+            color: #0369a1;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .tech-item {
+            background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <span class="logo-icon">🛡️</span>
+            <span>GeoGuard</span>
+        </div>
+        <nav class="nav">
+            <a href="index.html" class="nav-link">🏠 Dashboard</a>
+            <a href="areas.html" class="nav-link">📍 Areas</a>
+            <a href="about.html" class="nav-link active">ℹ️ About</a>
+            <a href="emergency.html" class="emergency-link">🚨 Emergency</a>
+            <a href="login.html" class="admin-link">🔒 Admin</a>
+        </nav>
+    </div>
+
+    <div class="about-container">
+        <div class="about-hero">
+            <h1>🛡️ About GeoGuard</h1>
+            <p>GeoGuard is an advanced geospatial flood monitoring and prediction system designed specifically for Chennai. 
+            Using cutting-edge technology and real-time data analysis, we help protect communities by providing accurate 
+            flood risk assessments and early warning systems.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🗺️</div>
+                <h3>Real-Time Monitoring</h3>
+                <p>Interactive map displaying live flood risk data across 34 zones in Chennai with color-coded risk levels.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Risk Assessment</h3>
+                <p>Advanced algorithms analyze rainfall, elevation, and water proximity to calculate accurate flood risk scores.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🏛️</div>
+                <h3>Shelter Locator</h3>
+                <p>Find the nearest emergency shelters with capacity information, facilities, and contact details.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚨</div>
+                <h3>Emergency Alerts</h3>
+                <p>Instant notifications for high-risk areas with actionable safety recommendations and evacuation guidance.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📞</div>
+                <h3>Emergency Contacts</h3>
+                <p>Quick access to 40+ emergency services including hospitals, fire stations, police, and disaster management.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📍</div>
+                <h3>Location Services</h3>
+                <p>GPS-based location detection to show personalized flood risk information for your current area.</p>
+            </div>
+        </div>
+
+        <div class="tech-stack">
+            <h2>🔧 Technology Stack</h2>
+            <div class="tech-list">
+                <span class="tech-item">HTML5</span>
+                <span class="tech-item">CSS3</span>
+                <span class="tech-item">JavaScript</span>
+                <span class="tech-item">Leaflet.js</span>
+                <span class="tech-item">GeoJSON</span>
+                <span class="tech-item">Python</span>
+                <span class="tech-item">OpenStreetMap</span>
+                <span class="tech-item">SRTM Elevation Data</span>
+                <span class="tech-item">IMD Rainfall Data</span>
+            </div>
+        </div>
+
+        <div class="about-hero">
+            <h2 style="color: #0369a1; margin-bottom: 1rem;">🎯 Our Mission</h2>
+            <p>To provide Chennai residents with reliable, accessible, and actionable flood risk information, 
+            enabling communities to make informed decisions and stay safe during monsoon seasons and extreme weather events.</p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>🛡️ GeoGuard</h4>
+                <p>Chennai Flood Risk Monitoring System</p>
+                <p>&copy; 2024 GeoGuard. All rights reserved.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="index.html">Dashboard</a>
+                <a href="areas.html">Area List</a>
+                <a href="about.html">About Us</a>
+                <a href="emergency.html">Emergency Contacts</a>
+                <a href="login.html">Admin Login</a>
+            </div>
+            <div class="footer-section">
+                <h4>Emergency</h4>
+                <p>🚑 Ambulance: 108</p>
+                <p>🔥 Fire: 101</p>
+                <p>👮 Police: 100</p>
+                <p>🌊 Disaster Mgmt: 1070</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>📧 info@geoguard.com</p>
+                <p>📞 044-2561-9206</p>
+                <p>📍 Chennai, Tamil Nadu</p>
+                <p>🌐 www.geoguard.com</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

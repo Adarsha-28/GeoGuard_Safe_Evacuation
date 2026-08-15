@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoGuard - Chennai Flood Risk Monitor</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <span class="logo-icon">🛡️</span>
+            <span>GeoGuard</span>
+        </div>
+        <nav class="nav">
+            <a href="index.html" class="nav-link active">🏠 Dashboard</a>
+            <a href="areas.html" class="nav-link">📍 Areas</a>
+            <a href="about.html" class="nav-link">ℹ️ About</a>
+            <a href="emergency.html" class="emergency-link">🚨 Emergency</a>
+            <a href="login.html" class="admin-link">🔒 Admin</a>
+        </nav>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">Last Updated:</span>
+                <span id="lastUpdate">--</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Total Zones:</span>
+                <span id="totalZones">--</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">High Risk:</span>
+                <span id="highRisk" class="risk-high">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="panel-section" id="evacuationPanel">
+                <h3>🛡️ Safe Evacuation</h3>
+                <div id="evacuationStatus" style="font-size: 13px; margin-bottom: 15px;">
+                    <div style="opacity: 0.8; margin-bottom: 8px;">📍 <strong>Your Location:</strong> <span id="userLocationText">Not determined</span></div>
+                    <div style="display: flex; gap: 5px; flex-direction: column; margin-bottom: 12px;">
+                        <button class="location-btn" id="randomLocationBtn" onclick="triggerRandomLocation()" style="width: 100%; border-radius: 4px; padding: 6px; font-size: 12px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: bold; cursor: pointer;">🎲 Random Demo Location</button>
+                    </div>
+                </div>
+                
+                <div id="routeDetails" style="display: none; background: rgba(255, 255, 255, 0.9); border: 1px solid #bae6fd; border-radius: 6px; padding: 12px; margin-bottom: 15px; font-size: 13px;">
+                    <div style="font-weight: bold; color: #0369a1; margin-bottom: 8px;" id="recShelterName">Shelter Name</div>
+                    <div style="margin-bottom: 4px;"><strong>Distance:</strong> <span id="recDistance">--</span></div>
+                    <div style="margin-bottom: 4px;"><strong>Travel Time:</strong> <span id="recTime">--</span></div>
+                    <div style="margin-bottom: 4px;"><strong>Risk Level:</strong> <span id="recRisk" style="font-weight: bold;">--</span></div>
+                    <div style="margin-bottom: 4px;"><strong>Safety Score:</strong> <span id="recSafety" style="font-weight: bold;">--</span></div>
+                    <div style="margin-bottom: 8px;"><strong>Available Capacity:</strong> <span id="recCapacity">--</span></div>
+                    <div style="font-style: italic; color: #475569; font-size: 12px; border-top: 1px solid #bae6fd; padding-top: 8px;" id="recReason">Reason</div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="location-btn" id="findSafeRouteBtn" onclick="findSafeRoute()" style="width: 100%; border-radius: 6px; padding: 10px;">FIND SAFE ROUTE</button>
+                    <button class="location-btn" id="startEvacuationBtn" onclick="startEvacuation()" style="width: 100%; border-radius: 6px; padding: 10px; background: #10b981; display: none;">START EVACUATION</button>
+                    <button class="location-btn" id="recalculateRouteBtn" onclick="recalculateRoute()" style="width: 100%; border-radius: 6px; padding: 10px; background: #f59e0b; display: none;">RECALCULATE ROUTE</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📊 Risk Overview</h3>
+                <div class="metric-card safe" onclick="window.location.href='areas.html?filter=Low'">
+                    <div class="metric-label">Safe Zones</div>
+                    <div class="metric-value" id="safeZonesMetric">4</div>
+                </div>
+                <div class="metric-card moderate" onclick="window.location.href='areas.html?filter=Moderate'">
+                    <div class="metric-label">Moderate Risk</div>
+                    <div class="metric-value" id="moderateRiskMetric">13</div>
+                </div>
+                <div class="metric-card high" onclick="window.location.href='areas.html?filter=High'">
+                    <div class="metric-label">High Risk</div>
+                    <div class="metric-value" id="highRiskMetric">13</div>
+                </div>
+                <div class="metric-card severe" onclick="window.location.href='areas.html?filter=Severe'">
+                    <div class="metric-label">Severe Risk</div>
+                    <div class="metric-value" id="severeRiskMetric">4</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="map-controls">
+                <div class="search-container">
+                    <input type="text" id="locationSearch" placeholder="🔍 Search location..." class="location-search">
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+                <button class="location-btn" id="myLocationBtn" title="Get My Location">
+                    📍 My Location
+                </button>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel-section">
+                <h3>🏛️ Nearby Shelters</h3>
+                <div id="sheltersList">
+                    <div style="opacity: 0.7; padding: 12px; text-align: center;">📍 Click "My Location" to find nearby shelters</div>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>🚨 Active Alerts</h3>
+                <div id="alertsList"></div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>🏥 Emergency Contacts</h3>
+                <div class="contact-list">
+                    <div class="contact-item">
+                        <strong>Emergency:</strong> 108
+                    </div>
+                    <div class="contact-item">
+                        <strong>Fire:</strong> 101
+                    </div>
+                    <div class="contact-item">
+                        <strong>Police:</strong> 100
+                    </div>
+                    <div class="contact-item">
+                        <strong>Disaster Mgmt:</strong> 1070
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>🛡️ GeoGuard</h4>
+                <p>Chennai Flood Risk Monitoring System</p>
+                <p>&copy; 2024 GeoGuard. All rights reserved.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <a href="index.html">Dashboard</a>
+                <a href="areas.html">Area List</a>
+                <a href="about.html">About Us</a>
+                <a href="emergency.html">Emergency Contacts</a>
+                <a href="login.html">Admin Login</a>
+            </div>
+            <div class="footer-section">
+                <h4>Emergency</h4>
+                <p>🚑 Ambulance: 108</p>
+                <p>🔥 Fire: 101</p>
+                <p>👮 Police: 100</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>📧 info@geoguard.com</p>
+                <p>📞 044-2561-9206</p>
+                <p>📍 Chennai, Tamil Nadu</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="shelters.js"></script>
+    <script src="app.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+# 🛡️ GeoGuard - Chennai Flood Risk Monitor
+
+## ✅ QUICK START (Follow These Steps)
+
+### Step 1: Open Command Prompt
+Press `Win + R`, type `cmd`, press Enter
+
+### Step 2: Navigate to GeoGuard folder
+```bash
+cd C:\Users\ADARSHA\Desktop\GeoGuard
+```
+
+### Step 3: Start the server
+```bash
+python -m http.server 8000
+```
+
+You should see:
+```
+Serving HTTP on :: port 8000 (http://[::]:8000/) ...
+```
+
+### Step 4: Open your browser
+Go to: **http://localhost:8000/web/index.html**
+
+---
+
+## 🎯 What You Should See
+
+✅ A dark blue dashboard with:
+- Header showing "🛡️ GeoGuard"
+- Left panel with risk statistics
+- Center map showing Chennai with colored zones
+- Right panel with alerts and emergency contacts
+
+---
+
+## ❌ Troubleshooting
+
+### Problem: "Cannot load data" error
+**Solution:** Make sure you're running the server from the **GeoGuard** folder (not the web folder)
+
+```bash
+# Check current directory
+cd
+
+# If you're in the web folder, go up one level
+cd ..
+
+# Now start server
+python -m http.server 8000
+```
+
+### Problem: Port 8000 already in use
+**Solution:** Use a different port
+```bash
+python -m http.server 8080
+```
+Then open: http://localhost:8080/web/index.html
+
+### Problem: Map not showing
+**Solution:** 
+1. Check browser console (F12)
+2. Look for error messages
+3. Make sure you have internet connection (for map tiles)
+
+---
+
+## 📁 File Structure
+
+```
+GeoGuard/
+├── web/
+│   ├── index.html      ← Main page
+│   ├── app.js          ← JavaScript logic
+│   ├── style.css       ← Styling
+│   └── START_HERE.txt  ← This file
+└── data/
+    └── processed/
+        └── chennai_flood_risk_with_water.geojson  ← Data file
+```
+
+---
+
+## 🔍 Verify Setup
+
+1. Check if data file exists:
+   ```bash
+   dir data\processed\chennai_flood_risk_with_water.geojson
+   ```
+
+2. Check if you're in the right folder:
+   ```bash
+   dir web
+   ```
+   You should see: index.html, app.js, style.css
+
+---
+
+## 💡 Tips
+
+- Keep the command prompt window open while using the app
+- Press `Ctrl+C` in command prompt to stop the server
+- Refresh browser (F5) if you make changes to files
+- Use Chrome or Firefox for best experience
+
+---
+
+## 📞 Features
+
+- **Interactive Map**: Click on zones to see details
+- **Risk Statistics**: View counts of different risk levels
+- **Active Alerts**: See high-risk zones
+- **Emergency Contacts**: Quick access to emergency numbers
+- **Color Coding**:
+  - 🟢 Green = Low Risk
+  - 🟡 Yellow = Moderate Risk
+  - 🟠 Orange = High Risk
+  - 🔴 Red = Severe Risk
+
+---
+
+**Need Help?** Check the browser console (F12) for detailed error messages.

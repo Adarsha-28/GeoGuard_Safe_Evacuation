@@ -1,0 +1,16 @@
+pandas
+numpy
+geopandas
+osmnx
+shapely
+matplotlib
+scikit-learn
+requests
+streamlit
+folium
+streamlit-folium
+plotly
+branca
+geopy
+flask
+flask-cors

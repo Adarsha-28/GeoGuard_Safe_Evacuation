@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoGuard - Setup Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        .info { border-left: 4px solid #3b82f6; }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status { font-weight: bold; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>🛡️ GeoGuard - Setup Test</h1>
+    
+    <div class="test-box info">
+        <h2>📋 System Check</h2>
+        <p><strong>Current URL:</strong> <span id="currentUrl"></span></p>
+        <p><strong>Protocol:</strong> <span id="protocol"></span></p>
+        <p><strong>Server Status:</strong> <span id="serverStatus" class="status">Checking...</span></p>
+    </div>
+
+    <div class="test-box" id="dataTest">
+        <h2>📊 Data File Test</h2>
+        <p><strong>Status:</strong> <span id="dataStatus" class="status">Testing...</span></p>
+        <p><strong>Path:</strong> <code>../data/processed/chennai_flood_risk_with_water.geojson</code></p>
+        <div id="dataResult"></div>
+    </div>
+
+    <div class="test-box info">
+        <h2>✅ Next Steps</h2>
+        <p>If all tests pass, click the button below to open the main application:</p>
+        <button onclick="window.location.href='index.html'">Open GeoGuard Dashboard</button>
+    </div>
+
+    <div class="test-box info">
+        <h2>🔧 Troubleshooting</h2>
+        <p><strong>If tests fail:</strong></p>
+        <ol>
+            <li>Make sure you're running: <code>python -m http.server 8000</code></li>
+            <li>Run it from the <strong>GeoGuard</strong> folder (not web folder)</li>
+            <li>Access via: <code>http://localhost:8000/web/test.html</code></li>
+        </ol>
+    </div>
+
+    <script>
+        // Display current URL info
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('protocol').textContent = window.location.protocol;
+        
+        // Check if using proper server
+        if (window.location.protocol === 'file:') {
+            document.getElementById('serverStatus').textContent = '❌ NOT RUNNING';
+            document.getElementById('serverStatus').style.color = '#ef4444';
+        } else {
+            document.getElementById('serverStatus').textContent = '✅ RUNNING';
+            document.getElementById('serverStatus').style.color = '#10b981';
+        }
+
+        // Test data file access
+        fetch('../data/processed/chennai_flood_risk_with_water.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const testBox = document.getElementById('dataTest');
+                testBox.className = 'test-box success';
+                
+                document.getElementById('dataStatus').textContent = '✅ SUCCESS';
+                document.getElementById('dataStatus').style.color = '#10b981';
+                
+                document.getElementById('dataResult').innerHTML = `
+                    <p><strong>✅ Data loaded successfully!</strong></p>
+                    <p>Total features: ${data.features.length}</p>
+                    <p>File size: ~${(JSON.stringify(data).length / 1024).toFixed(2)} KB</p>
+                `;
+            })
+            .catch(error => {
+                const testBox = document.getElementById('dataTest');
+                testBox.className = 'test-box error';
+                
+                document.getElementById('dataStatus').textContent = '❌ FAILED';
+                document.getElementById('dataStatus').style.color = '#ef4444';
+                
+                document.getElementById('dataResult').innerHTML = `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Solution:</strong></p>
+                    <ol>
+                        <li>Stop the server (Ctrl+C)</li>
+                        <li>Navigate to GeoGuard folder: <code>cd C:\\Users\\ADARSHA\\Desktop\\GeoGuard</code></li>
+                        <li>Start server: <code>python -m http.server 8000</code></li>
+                        <li>Open: <code>http://localhost:8000/web/test.html</code></li>
+                    </ol>
+                `;
+            });
+    </script>
+</body>
+</html>

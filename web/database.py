@@ -97,6 +97,32 @@ def init_db():
             
         conn.commit()
         print("Shelters database seeded successfully!")
+        
+    # Create alerts table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            severity TEXT,
+            zone TEXT,
+            message TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Seed default alerts if empty
+    cursor.execute('SELECT COUNT(*) FROM alerts')
+    if cursor.fetchone()[0] == 0:
+        cursor.execute('''
+            INSERT INTO alerts (title, severity, zone, message)
+            VALUES (?, ?, ?, ?)
+        ''', ("Heavy Rainfall Advisory", "High", "All Zones", "IMD has forecasted continuous heavy rainfall over the next 12 hours. Citizens are advised to monitor official channels."))
+        cursor.execute('''
+            INSERT INTO alerts (title, severity, zone, message)
+            VALUES (?, ?, ?, ?)
+        ''', ("Water Level Warning", "Critical", "Adyar River Basin", "Adyar river levels are approaching safe boundaries. Lower-elevation sectors should prepare emergency kits."))
+        conn.commit()
+        print("Alerts table seeded successfully!")
     
     conn.close()
 

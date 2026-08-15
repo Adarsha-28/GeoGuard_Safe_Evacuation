@@ -53,6 +53,122 @@ COORD_RISK_CACHE = {}
 # Global in-memory cache for fully evaluated routes (geometry and calculated risk safety scores)
 EVALUATED_ROUTE_CACHE = {}
 
+import threading
+import time
+
+# Global simulation mode switch (True = Simulated Heavy Storm, False = Live Weather)
+SIMULATION_MODE = False
+
+def update_weather_and_risk():
+    global GEOJSON_DATA, POLYGONS_CACHE, COORD_RISK_CACHE, EVALUATED_ROUTE_CACHE, SIMULATION_MODE
+    current_rain = 0.0
+    
+    if SIMULATION_MODE:
+        # Simulate severe storm rainfall for EOC demonstration
+        current_rain = 85.0
+        print("[WEATHER] Simulation Mode Active: Simulating heavy storm (85.0 mm)")
+    else:
+        try:
+            # Fetch live rain from Open-Meteo for Chennai coordinates
+            url = "https://api.open-meteo.com/v1/forecast?latitude=13.0827&longitude=80.2707&current=rain,precipitation&timezone=Asia/Kolkata"
+            req = urllib.request.Request(url, headers={'User-Agent': 'GeoGuard'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                weather = json.loads(response.read().decode('utf-8'))
+            
+            current_rain = float(weather.get('current', {}).get('precipitation', 0.0))
+            print(f"[WEATHER] Live Chennai precipitation fetched: {current_rain} mm")
+        except Exception as e:
+            print(f"[WEATHER] Failed to fetch live weather: {e}. Defaulting to clear weather.")
+            current_rain = 0.0
+
+    try:
+        with open(GEOJSON_PATH, "r") as f:
+            geojson = json.load(f)
+            
+        features = geojson.get('features', [])
+        if not features:
+            return False
+
+        # Apply rainfall to all polygons
+        for i, feature in enumerate(features):
+            props = feature['properties']
+            if current_rain > 0.0:
+                # Add spatial variations only when there is precipitation
+                local_fluc = (i % 6) * 4.0
+                props['rainfall_mm'] = max(0.0, current_rain + local_fluc)
+            else:
+                props['rainfall_mm'] = 0.0
+
+        # Recalculate normalization boundaries
+        rainfalls = [f['properties']['rainfall_mm'] for f in features]
+        elevations = [f['properties']['elevation_m'] for f in features]
+        
+        min_rain, max_rain = min(rainfalls), max(rainfalls)
+        min_elev, max_elev = min(elevations), max(elevations)
+        
+        rain_range = max_rain - min_rain
+        elev_range = max_elev - min_elev
+        
+        # Calculate risk scores
+        for feature in features:
+            props = feature['properties']
+            
+            props['rain_norm'] = 0.0 if rain_range == 0 else (props['rainfall_mm'] - min_rain) / rain_range
+            props['elev_norm'] = 0.0 if elev_range == 0 else (max_elev - props['elevation_m']) / elev_range
+            
+            score = 0.7 * props['rain_norm'] + 0.3 * props['elev_norm']
+            props['flood_risk_score'] = score
+            
+            if score < 0.3:
+                props['flood_risk'] = 'Low'
+            elif score < 0.6:
+                props['flood_risk'] = 'Moderate'
+            elif score < 0.85:
+                props['flood_risk'] = 'High'
+            else:
+                props['flood_risk'] = 'Severe'
+
+        # Save to disk
+        with open(GEOJSON_PATH, "w") as f:
+            json.dump(geojson, f)
+
+        # Reload server memory
+        GEOJSON_DATA = geojson
+        
+        new_polygons_cache = []
+        for feature in GEOJSON_DATA.get('features', []):
+            geom = feature.get('geometry', {})
+            if geom.get('type') == 'Polygon':
+                poly = Polygon(geom['coordinates'][0])
+                risk = feature['properties'].get('flood_risk', 'Low')
+                minx, miny, maxx, maxy = poly.bounds
+                new_polygons_cache.append((poly, risk, minx, miny, maxx, maxy))
+        
+        POLYGONS_CACHE = new_polygons_cache
+        COORD_RISK_CACHE.clear()
+        EVALUATED_ROUTE_CACHE.clear()
+        
+        print(f"[WEATHER] In-memory caches updated successfully with {current_rain} mm rain.")
+        return True
+    except Exception as e:
+        print(f"[WEATHER] Failed to calculate risk updates: {e}")
+        return False
+
+def start_weather_sync_loop():
+    def loop():
+        # wait a bit for startup
+        time.sleep(3)
+        # Seed initial calculations
+        update_weather_and_risk()
+        while True:
+            # Sync every 2 minutes
+            time.sleep(120)
+            print("[SYNC] Triggering weather and risk calculation sync...")
+            update_weather_and_risk()
+    
+    t = threading.Thread(target=loop, daemon=True)
+    t.start()
+
 def query_risk_level(lat, lng):
     cache_key = (round(lat, 4), round(lng, 4))
     if cache_key in COORD_RISK_CACHE:
@@ -93,7 +209,15 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_url = urllib.parse.urlparse(self.path)
-        if parsed_url.path == '/api/shelters/all':
+        if parsed_url.path == '/api/alerts/all':
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM alerts ORDER BY id DESC')
+            alerts = [dict(a) for a in cursor.fetchall()]
+            conn.close()
+            self.send_json_response(alerts)
+        elif parsed_url.path == '/api/shelters/all':
             conn = sqlite3.connect(DB_PATH)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -135,7 +259,32 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed_url = urllib.parse.urlparse(self.path)
-        if parsed_url.path == '/api/evacuation/start':
+        if parsed_url.path == '/api/alerts/create':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            try:
+                data = json.loads(body.decode('utf-8'))
+                title = data.get('title')
+                severity = data.get('severity')
+                zone = data.get('zone')
+                message = data.get('message')
+                if not (title and severity and zone and message):
+                    raise ValueError("Missing parameters")
+            except (ValueError, KeyError, TypeError) as e:
+                self.send_error_response(400, f"Invalid alert payload: {e}")
+                return
+                
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO alerts (title, severity, zone, message)
+                VALUES (?, ?, ?, ?)
+            ''', (title, severity, zone, message))
+            conn.commit()
+            conn.close()
+            
+            self.send_json_response({"message": "Alert published successfully."})
+        elif parsed_url.path == '/api/evacuation/start':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
             try:
@@ -175,6 +324,23 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 "message": "Evacuation started. Capacity updated successfully.",
                 "shelter": shelter
             })
+        elif parsed_url.path == '/api/weather/toggle':
+            global SIMULATION_MODE
+            SIMULATION_MODE = not SIMULATION_MODE
+            success = update_weather_and_risk()
+            if success:
+                self.send_json_response({
+                    "message": "Simulation mode toggled successfully.",
+                    "simulationMode": SIMULATION_MODE
+                })
+            else:
+                self.send_error_response(500, "Failed to recalculate risk scores after toggle.")
+        elif parsed_url.path == '/api/weather/update':
+            success = update_weather_and_risk()
+            if success:
+                self.send_json_response({"message": "Weather and risk model successfully synchronized with Open-Meteo."})
+            else:
+                self.send_error_response(500, "Failed to recalculate risk scores from weather data.")
         elif parsed_url.path in ['/api/routes/safe', '/api/routes/recalculate']:
             import time
             t0 = time.time()
@@ -378,6 +544,9 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps({"error": message}).encode('utf-8'))
 
 Handler = MyHTTPRequestHandler
+
+# Start background weather synchronization thread
+start_weather_sync_loop()
 
 # Run server
 with http.server.ThreadingHTTPServer(("", PORT), Handler) as httpd:

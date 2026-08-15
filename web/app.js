@@ -1,10 +1,11 @@
 // Initialize map centered on Chennai
 const map = L.map('map').setView([13.0827, 80.2707], 11);
 
-// Add OpenStreetMap tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19
+// Add clean, high-contrast CartoDB Positron tile layer for premium styling and high visibility
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
 }).addTo(map);
 
 // Chennai area names for place name generation
@@ -49,11 +50,30 @@ let stats = {
     total: 34
 };
 
-// Function to update UI with statistics
+// Zoom to a specific coordinate on the Leaflet map and trigger its popup
+window.zoomToZone = function(lat, lng, placeName) {
+    map.setView([lat, lng], 14, { animate: true });
+    // Find the feature layer in the map if possible or open a popup manually
+    L.popup()
+        .setLatLng([lat, lng])
+        .setContent(`<div class="popup-title">${placeName}</div><div class="popup-info">Command Center focused. Click map grid for telemetry.</div>`)
+        .openOn(map);
+};
+
+// Global reference for critical zone focus
+let firstCriticalZone = null;
+window.focusCriticalZone = function() {
+    if (firstCriticalZone) {
+        window.zoomToZone(firstCriticalZone.lat, firstCriticalZone.lng, firstCriticalZone.name);
+    }
+};
+
+// Function to update UI with statistics and populate EOC widgets
 function updateStatistics() {
+    const timestampStr = new Date().toLocaleString();
     document.getElementById('totalZones').textContent = stats.total;
     document.getElementById('highRisk').textContent = stats.high + stats.severe;
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+    document.getElementById('lastUpdate').textContent = timestampStr;
     
     // Update metric cards dynamically
     const safeEl = document.getElementById('safeZonesMetric');
@@ -65,22 +85,242 @@ function updateStatistics() {
     if (modEl) modEl.textContent = stats.moderate;
     if (highEl) highEl.textContent = stats.high;
     if (sevEl) sevEl.textContent = stats.severe;
+
+    // 1. LIVE DISASTER STATUS BANNER
+    const bannerEl = document.getElementById('statusBanner');
+    const bannerTitleEl = document.getElementById('statusBannerTitle');
+    const bannerMsgEl = document.getElementById('statusBannerMessage');
+    const bannerTimeEl = document.getElementById('bannerTimestamp');
+    const bannerActionsEl = document.getElementById('statusBannerActions');
+    
+    if (bannerTimeEl) bannerTimeEl.textContent = timestampStr;
+    
+    const criticalCount = stats.severe + stats.high;
+    if (criticalCount > 0 && bannerEl) {
+        bannerEl.className = "status-banner critical";
+        if (bannerTitleEl) bannerTitleEl.textContent = "CRITICAL ALERT";
+        
+        // Find first critical zone name to show in banner
+        let zoneLabel = "monitored zones";
+        if (floodData && floodData.features) {
+            const critFeature = floodData.features.find(f => f.properties.flood_risk === 'Severe' || f.properties.flood_risk === 'High');
+            if (critFeature) {
+                const name = getPlaceName(critFeature.properties.latitude, critFeature.properties.longitude);
+                zoneLabel = name;
+                firstCriticalZone = {
+                    name: name,
+                    lat: critFeature.properties.latitude,
+                    lng: critFeature.properties.longitude
+                };
+            }
+        }
+        
+        if (bannerMsgEl) bannerMsgEl.textContent = `Immediate attention required in ${zoneLabel}. Critical status active.`;
+        if (bannerActionsEl) bannerActionsEl.style.display = "flex";
+    } else if (bannerEl) {
+        bannerEl.className = "status-banner operational";
+        if (bannerTitleEl) bannerTitleEl.textContent = "SYSTEM OPERATIONAL";
+        if (bannerMsgEl) bannerMsgEl.textContent = "No major threats detected in monitored zones.";
+        if (bannerActionsEl) bannerActionsEl.style.display = "none";
+    }
+
+    // 2. RISK DISTRIBUTION PROGRESS BARS
+    const total = stats.total || 1;
+    const safePercent = (stats.safe / total) * 100;
+    const modPercent = (stats.moderate / total) * 100;
+    const highPercent = (stats.high / total) * 100;
+    const critPercent = (stats.severe / total) * 100;
+
+    const barSafe = document.getElementById('distBarSafe');
+    const barMod = document.getElementById('distBarModerate');
+    const barHigh = document.getElementById('distBarHigh');
+    const barCrit = document.getElementById('distBarCritical');
+
+    if (barSafe) barSafe.style.width = `${safePercent}%`;
+    if (barMod) barMod.style.width = `${modPercent}%`;
+    if (barHigh) barHigh.style.width = `${highPercent}%`;
+    if (barCrit) barCrit.style.width = `${critPercent}%`;
+
+    const cntSafe = document.getElementById('distCountSafe');
+    const cntMod = document.getElementById('distCountModerate');
+    const cntHigh = document.getElementById('distCountHigh');
+    const cntCrit = document.getElementById('distCountCritical');
+
+    if (cntSafe) cntSafe.textContent = stats.safe;
+    if (cntMod) cntMod.textContent = stats.moderate;
+    if (cntHigh) cntHigh.textContent = stats.high;
+    if (cntCrit) cntCrit.textContent = stats.severe;
+
+    // 3. ZONE-WISE RISK TABLE POPULATION
+    const tableBody = document.getElementById('monitoredZonesTableBody');
+    if (tableBody && floodData && floodData.features) {
+        // Sort features so Severe and High risks are listed first
+        const sortedFeatures = [...floodData.features].sort((a, b) => {
+            const riskWeight = { 'Severe': 4, 'High': 3, 'Moderate': 2, 'Low': 1, 'Medium': 2 };
+            const rA = riskWeight[a.properties.flood_risk] || 1;
+            const rB = riskWeight[b.properties.flood_risk] || 1;
+            return rB - rA;
+        });
+
+        tableBody.innerHTML = sortedFeatures.map(feature => {
+            const props = feature.properties;
+            const placeName = getPlaceName(props.latitude, props.longitude);
+            const risk = props.flood_risk;
+            const precipitation = props.rainfall_mm;
+            
+            let statusText = 'Normal';
+            let statusClass = 'badge-safe';
+            if (risk === 'Severe') {
+                statusText = 'Evacuate';
+                statusClass = 'badge-critical';
+            } else if (risk === 'High') {
+                statusText = 'Alert';
+                statusClass = 'badge-high';
+            } else if (risk === 'Moderate' || risk === 'Medium') {
+                statusText = 'Monitor';
+                statusClass = 'badge-moderate';
+            }
+
+            return `
+            <tr>
+                <td><strong>${placeName}</strong></td>
+                <td><span class="badge ${statusClass}">${risk}</span></td>
+                <td>${statusText}</td>
+                <td>${precipitation} mm</td>
+                <td><a onclick="zoomToZone(${props.latitude}, ${props.longitude}, '${placeName.replace(/'/g, "\\'")}')" class="view-zone-link">View</a></td>
+            </tr>
+            `;
+        }).join('');
+    }
+
+    // 4. POPULATION & READY TELEMETRY UPDATE
+    // Set the people at risk and evacuation counts dynamically based on severe/high risk counts
+    const peopleAtRisk = (stats.high * 450 + stats.severe * 1200);
+    const evacRequired = (stats.severe * 310);
+    
+    const peopleAtRiskEl = document.getElementById('peopleAtRiskText');
+    const evacRequiredEl = document.getElementById('evacuationRequiredText');
+    
+    if (peopleAtRiskEl) peopleAtRiskEl.textContent = peopleAtRisk.toLocaleString();
+    if (evacRequiredEl) evacRequiredEl.textContent = evacRequired.toLocaleString();
+
+    // Evacuation readiness rating
+    const readinessPercent = Math.max(50, 98 - (stats.severe * 8) - (stats.high * 3));
+    const readinessBar = document.getElementById('readinessProgressBar');
+    const readinessText = document.getElementById('readinessPercentText');
+    
+    if (readinessBar) readinessBar.style.width = `${readinessPercent}%`;
+    if (readinessText) readinessText.textContent = `${readinessPercent}%`;
+
+    // Dynamic AI response stance
+    const aiStanceEl = document.getElementById('aiRecommendationText');
+    const aiDescEl = document.getElementById('aiInsightDescription');
+    const aiRecsList = document.getElementById('aiRecommendationsList');
+    const trendCurrentEl = document.getElementById('trendCurrentStatus');
+    const trendPredEl = document.getElementById('trendPredictedStatus');
+
+    if (stats.severe > 0 || stats.high > 0) {
+        if (aiStanceEl) {
+            aiStanceEl.textContent = "EVACUATE";
+            aiStanceEl.className = "text-danger";
+        }
+        if (aiDescEl) aiDescEl.textContent = "High precipitations and low-elevation profiles detected in critical sectors. Recommended stance upgraded.";
+        if (aiRecsList) {
+            aiRecsList.innerHTML = `
+                <li><strong class="text-danger">Initiate immediate evacuation protocols in Critical sectors.</strong></li>
+                <li>Mobilize all emergency services and response teams.</li>
+                <li>Prepare and verify capacities at primary shelter zones.</li>
+                <li>Broadcast emergency updates via SMS and radio channels.</li>
+            `;
+        }
+        if (trendCurrentEl) {
+            trendCurrentEl.textContent = "HIGH";
+            trendCurrentEl.className = "badge badge-critical";
+        }
+        if (trendPredEl) {
+            trendPredEl.textContent = "HIGH → SEVERE";
+            trendPredEl.className = "badge badge-critical";
+        }
+    } else {
+        if (aiStanceEl) {
+            aiStanceEl.textContent = "MONITOR";
+            aiStanceEl.className = "text-success";
+        }
+        if (aiDescEl) aiDescEl.textContent = "The system currently detects low overall risk across monitored zones.";
+        if (aiRecsList) {
+            aiRecsList.innerHTML = `
+                <li>No immediate evacuation required.</li>
+                <li>Continue monitoring high-sensitivity zones.</li>
+                <li>Nearby shelters are available.</li>
+                <li>Emergency response resources are operational.</li>
+            `;
+        }
+        if (trendCurrentEl) {
+            trendCurrentEl.textContent = "LOW";
+            trendCurrentEl.className = "badge badge-safe";
+        }
+        if (trendPredEl) {
+            trendPredEl.textContent = "LOW → MODERATE";
+            trendPredEl.className = "badge badge-moderate";
+        }
+    }
 }
 
 // Function to generate alerts
 function generateAlerts() {
     const alertsList = document.getElementById('alertsList');
+    if (!alertsList) return;
     alertsList.innerHTML = '';
     
-    if (stats.severe > 0) {
-        alertsList.innerHTML += `<div class="alert-item">⚠️ ${stats.severe} zones in SEVERE risk</div>`;
-    }
-    if (stats.high > 0) {
-        alertsList.innerHTML += `<div class="alert-item">⚠️ ${stats.high} zones in HIGH risk</div>`;
-    }
-    if (stats.severe === 0 && stats.high === 0) {
-        alertsList.innerHTML = '<div style="opacity: 0.7; padding: 12px;">✅ No active alerts</div>';
-    }
+    // 1. Fetch administrative alerts published from the database
+    fetch('/api/alerts/all')
+    .then(res => res.json())
+    .then(dbAlerts => {
+        let alertsHTML = '';
+        
+        // Add database alerts
+        dbAlerts.forEach(alert => {
+            const isCritical = alert.severity === 'Critical';
+            const style = isCritical 
+                ? 'background-color: #FEF2F2; border-color: #FCA5A5; border-left: 4px solid #DC2626; color: #991B1B;'
+                : 'background-color: #FFF7ED; border-color: #FED7AA; border-left: 4px solid #EA580C; color: #C2410C;';
+                
+            alertsHTML += `
+                <div class="alert-item" style="padding: 10px 14px; margin-bottom: 8px; border-radius: 4px; border: 1px solid; ${style}">
+                    <strong>[${alert.severity.toUpperCase()}] ${alert.title}</strong>
+                    <p style="margin: 4px 0 2px 0; font-size: 12px; line-height: 1.4;">${alert.message}</p>
+                    <small style="opacity: 0.8; font-size: 10px;">Target: ${alert.zone} • ${alert.timestamp}</small>
+                </div>
+            `;
+        });
+        
+        // 2. Add dynamic auto-calculated risk warnings
+        if (stats.severe > 0) {
+            alertsHTML += `<div class="alert-item severe-risk">Critical: ${stats.severe} zones in Critical / Emergency status</div>`;
+        }
+        if (stats.high > 0) {
+            alertsHTML += `<div class="alert-item high-risk" style="background-color: #FFF7ED; border-color: #FED7AA; border-left-color: #EA580C; color: #C2410C;">High Risk: ${stats.high} zones in High risk status</div>`;
+        }
+        
+        // Default message if empty
+        if (!alertsHTML) {
+            alertsList.innerHTML = '<div class="alert-operational">✓ No active alerts</div>';
+        } else {
+            alertsList.innerHTML = alertsHTML;
+        }
+    })
+    .catch(err => {
+        console.error("Failed to fetch database alerts:", err);
+        // Fallback to computed alert status only
+        let alertsHTML = '';
+        if (stats.severe > 0) {
+            alertsHTML += `<div class="alert-item severe-risk">Critical: ${stats.severe} zones in Critical / Emergency status</div>`;
+        }
+        if (stats.high > 0) {
+            alertsHTML += `<div class="alert-item high-risk">High Risk: ${stats.high} zones in High risk status</div>`;
+        }
+        alertsList.innerHTML = alertsHTML || '<div class="alert-operational">✓ No active alerts</div>';
+    });
 }
 
 // Function to create popup content
@@ -160,6 +400,9 @@ fetch(dataPath)
         // Update stats with actual data
         stats = tempStats;
         
+        // Store data globally early for downstream UI updates
+        floodData = data;
+        
         console.log('📈 Statistics:', stats);
         
         // Update UI
@@ -209,9 +452,6 @@ fetch(dataPath)
         map.fitBounds(geoJsonLayer.getBounds());
         
         console.log('🗺️ Map rendered successfully!');
-        
-        // Store data globally
-        floodData = data;
         
         // Initialize search and location features
         initializeSearchAndLocation();
@@ -385,7 +625,9 @@ function searchLocation(locationName) {
                 })
             }).addTo(map);
             
+            currentCoords = { latitude: props.latitude, longitude: props.longitude };
             displayNearestShelters(props.latitude, props.longitude);
+            findSafeRoute();
         }
     }
 }
@@ -522,7 +764,9 @@ function getMyLocation() {
                     // Update search input
                     document.getElementById('locationSearch').value = placeName;
                     
+                    currentCoords = { latitude: lat, longitude: lng };
                     displayNearestShelters(lat, lng);
+                    findSafeRoute();
                 }
             }
             
@@ -613,31 +857,28 @@ function displayNearestShelters(lat, lng) {
         const topShelters = nearestShelters.slice(0, 3);
         
         if (topShelters.length === 0) {
-            sheltersList.innerHTML = '<div style="opacity: 0.7; padding: 12px;">⚠️ No active shelters found nearby</div>';
+            sheltersList.innerHTML = '<div class="panel-placeholder">No active shelters found nearby.</div>';
             return;
         }
         
         sheltersList.innerHTML = topShelters.map((shelter, index) => {
             const facilitiesText = typeof shelter.facilities === 'string' ? shelter.facilities : (shelter.facilities || []).join(', ');
             return `
-            <div class="shelter-item" onclick="focusShelter(${shelter.latitude}, ${shelter.longitude}, '${shelter.name.replace(/'/g, "\\'")}')"
-                 style="cursor: pointer; background: rgba(255, 255, 255, 0.8); padding: 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid #10b981; transition: all 0.3s;"
-                 onmouseover="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.transform='translateX(5px)';"
-                 onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.transform='translateX(0)';">
-                <div style="font-weight: bold; color: #0369a1; margin-bottom: 5px;">
+            <div class="shelter-item" onclick="focusShelter(${shelter.latitude}, ${shelter.longitude}, '${shelter.name.replace(/'/g, "\\'")}')">
+                <div class="title">
                     ${index + 1}. ${shelter.name}
                 </div>
-                <div style="font-size: 12px; color: #64748b; margin-bottom: 3px;">
-                    📍 ${shelter.distance.toFixed(2)} km away
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                    Distance: ${shelter.distance.toFixed(2)} km away
                 </div>
-                <div style="font-size: 12px; color: #64748b; margin-bottom: 3px;">
-                    👥 Available: <span style="font-weight: bold; color: ${shelter.availableCapacity === 0 ? '#ef4444' : '#10b981'};">${shelter.availableCapacity}</span> / ${shelter.capacity}
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                    Capacity: <span style="font-weight: bold; color: ${shelter.availableCapacity === 0 ? '#DC2626' : '#16A34A'};">${shelter.availableCapacity}</span> / ${shelter.capacity} available
                 </div>
-                <div style="font-size: 11px; color: #64748b;">
-                    ✅ ${facilitiesText}
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                    Facilities: ${facilitiesText}
                 </div>
-                <div style="font-size: 12px; color: #0ea5e9; margin-top: 5px;">
-                    📞 ${shelter.contact}
+                <div style="font-size: 12px; color: #0B5E8E; margin-top: 4px; font-weight: 600;">
+                    Contact: ${shelter.contact}
                 </div>
             </div>
             `;
@@ -645,7 +886,7 @@ function displayNearestShelters(lat, lng) {
     })
     .catch(error => {
         console.error('Error fetching nearby shelters:', error);
-        sheltersList.innerHTML = '<div style="opacity: 0.7; padding: 12px; color: #ef4444;">⚠️ Error loading nearby shelters</div>';
+        sheltersList.innerHTML = '<div class="alert-item severe-risk">Error loading nearby shelters.</div>';
     });
 }
 
@@ -807,7 +1048,7 @@ function findSafeRoute() {
         
         // Display route details
         document.getElementById('routeDetails').style.display = 'block';
-        document.getElementById('recShelterName').innerText = `🏠 ${data.shelter.name}`;
+        document.getElementById('recShelterName').innerText = `${data.shelter.name}`;
         document.getElementById('recDistance').innerText = `${data.shelter.distance.toFixed(2)} km`;
         
         const durationMins = Math.round(data.route.duration / 60);
@@ -815,12 +1056,18 @@ function findSafeRoute() {
         
         const risk = data.shelter.riskLevel;
         const riskColor = getRiskColor(risk);
-        document.getElementById('recRisk').innerHTML = `<span style="color: ${riskColor};">${risk}</span>`;
+        document.getElementById('recRisk').innerHTML = `<span style="color: ${riskColor}; font-weight: 700;">${risk}</span>`;
         
         const safetyScorePercent = Math.round(data.route.safetyScore * 100);
-        document.getElementById('recSafety').innerText = `${safetyScorePercent}%`;
+        document.getElementById('recSafety').innerText = `● Safe Path (${safetyScorePercent}%)`;
         document.getElementById('recCapacity').innerText = `${data.shelter.availableCapacity} / ${data.shelter.capacity}`;
-        document.getElementById('recReason').innerText = `Reason: "${data.reason}"`;
+        document.getElementById('recReason').innerText = `Stance Recommendation: "${data.reason}"`;
+        
+        // Populate EOC Alternative Routes block
+        const safestTextEl = document.getElementById('safestRouteText');
+        const altTextEl = document.getElementById('altRouteText');
+        if (safestTextEl) safestTextEl.textContent = `${data.shelter.distance.toFixed(2)} km | ${durationMins} min`;
+        if (altTextEl) altTextEl.textContent = `${(data.shelter.distance * 1.3).toFixed(2)} km | ${Math.round(durationMins * 1.4)} min`;
         
         // Toggle buttons
         findBtn.style.display = 'none';
@@ -950,3 +1197,87 @@ function recalculateRoute() {
         alert(`Recalculation failed: ${error.message}`);
     });
 }
+
+window.toggleSimulation = function() {
+    const btn = document.getElementById('simToggleBtn');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerText = "Toggling Mode...";
+    
+    fetch('/api/weather/toggle', { method: 'POST' })
+    .then(res => {
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+    })
+    .then(data => {
+        btn.disabled = false;
+        if (data.simulationMode) {
+            btn.innerText = "LIVE WEATHER MODE";
+            btn.style.borderColor = "#EF4444";
+            btn.style.color = "#EF4444";
+        } else {
+            btn.innerText = "SIMULATE STORM";
+            btn.style.borderColor = "rgba(234, 244, 249, 0.4)";
+            btn.style.color = "#EAF4F9";
+        }
+        
+        // Reload GeoJSON file from server to update dashboard telemetry
+        console.log("Reloading flood risk data...");
+        fetch(dataPath)
+        .then(response => response.json())
+        .then(newData => {
+            // Count statistics
+            let tempStats = { safe: 0, moderate: 0, high: 0, severe: 0, total: 0 };
+            newData.features.forEach(feature => {
+                const risk = feature.properties.flood_risk;
+                tempStats.total++;
+                if (risk === 'Low') tempStats.safe++;
+                else if (risk === 'Moderate') tempStats.moderate++;
+                else if (risk === 'High') tempStats.high++;
+                else if (risk === 'Severe') tempStats.severe++;
+            });
+            stats = tempStats;
+            floodData = newData;
+            
+            // Update UI
+            updateStatistics();
+            
+            // Re-render map layers
+            map.eachLayer(layer => {
+                if (layer instanceof L.GeoJSON) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            const geoJsonLayer = L.geoJSON(newData, {
+                style: function(feature) {
+                    return {
+                        fillColor: getRiskColor(feature.properties.flood_risk),
+                        weight: 0,
+                        opacity: 0,
+                        color: 'transparent',
+                        fillOpacity: 0.7
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    const props = feature.properties;
+                    const placeName = getPlaceName(props.latitude, props.longitude);
+                    layer.bindPopup(createPopupContent(props, placeName));
+                    layer.on('mouseover', function() {
+                        this.setStyle({ weight: 2, opacity: 1, color: '#fff', fillOpacity: 0.9 });
+                    });
+                    layer.on('mouseout', function() {
+                        this.setStyle({ weight: 0, opacity: 0, color: 'transparent', fillOpacity: 0.7 });
+                    });
+                }
+            }).addTo(map);
+            
+            alert(`Mode successfully toggled to ${data.simulationMode ? "Simulation Storm" : "Live Weather"}.`);
+        });
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = "SIMULATE STORM";
+        alert("Failed to toggle mode: " + err.message);
+    });
+};

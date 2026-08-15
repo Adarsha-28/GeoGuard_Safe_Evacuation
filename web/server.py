@@ -211,6 +211,11 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_url = urllib.parse.urlparse(self.path)
+        if parsed_url.path in ['/', '/index.html']:
+            self.send_response(301)
+            self.send_header('Location', '/web/index.html')
+            self.end_headers()
+            return
         if parsed_url.path == '/api/alerts/all':
             conn = sqlite3.connect(DB_PATH)
             conn.row_factory = sqlite3.Row

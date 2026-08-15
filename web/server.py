@@ -10,15 +10,17 @@ import urllib.request
 import math
 from shapely.geometry import Point, Polygon
 
-# Ensure database is seeded
-sys.path.append(r'c:\Users\ADARSHA\Desktop\GeoGuard')
+# Ensure database is seeded and paths resolve correctly on all platforms
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
 from web.database import init_db, DB_PATH, GEOJSON_PATH, get_risk_level
 
 # Initialize database
 init_db()
 
-# Change to the GeoGuard directory
-os.chdir(r'c:\Users\ADARSHA\Desktop\GeoGuard')
+# Change to the project root directory dynamically
+os.chdir(ROOT_DIR)
 
 PORT = 8000
 

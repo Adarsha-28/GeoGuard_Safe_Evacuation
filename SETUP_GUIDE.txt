@@ -1,142 +1,53 @@
 ═══════════════════════════════════════════════════════════
-  🛡️ GeoGuard - Chennai Flood Risk Monitor
-  Complete Setup Guide
+  🛡️ GeoGuard V1 - Chennai Flood Risk & Evacuation System
+  Quick Setup Guide
 ═══════════════════════════════════════════════════════════
 
-📌 IMPORTANT: Follow these steps EXACTLY
+📌 PREREQUISITES:
+- Python 3.10+ installed
+- Command prompt or PowerShell
 
 ═══════════════════════════════════════════════════════════
-STEP 1: Open Command Prompt
+STEP 1: Navigate to GeoGuard Folder
 ═══════════════════════════════════════════════════════════
-
-Press: Windows Key + R
-Type: cmd
-Press: Enter
-
-═══════════════════════════════════════════════════════════
-STEP 2: Navigate to GeoGuard Folder
-═══════════════════════════════════════════════════════════
-
-Copy and paste this command:
 
 cd C:\Users\ADARSHA\Desktop\GeoGuard
 
-Press: Enter
-
-You should see: C:\Users\ADARSHA\Desktop\GeoGuard>
-
 ═══════════════════════════════════════════════════════════
-STEP 3: Start the Server
+STEP 2: Install Dependencies
 ═══════════════════════════════════════════════════════════
 
-Copy and paste this command:
+pip install -r requirements.txt
 
-python -m http.server 8000
+═══════════════════════════════════════════════════════════
+STEP 3: Run Automated Test Suite
+═══════════════════════════════════════════════════════════
 
-Press: Enter
+python -m pytest tests/ -v
+
+═══════════════════════════════════════════════════════════
+STEP 4: Start the Server
+═══════════════════════════════════════════════════════════
+
+python main.py
 
 You should see:
-Serving HTTP on :: port 8000 (http://[::]:8000/) ...
-
-⚠️ KEEP THIS WINDOW OPEN! Don't close it!
-
-═══════════════════════════════════════════════════════════
-STEP 4: Open Your Browser
-═══════════════════════════════════════════════════════════
-
-Open Chrome, Firefox, or Edge
-
-Copy and paste this URL:
-
-http://localhost:8000/web/test.html
-
-This will test if everything is working.
-
-If the test passes, go to:
-
-http://localhost:8000/web/index.html
+[READY] Server operational at http://localhost:8000/
+[READY] Press Ctrl+C to stop the server
 
 ═══════════════════════════════════════════════════════════
-✅ WHAT YOU SHOULD SEE
+STEP 5: Open the Web Dashboard
 ═══════════════════════════════════════════════════════════
 
-✓ Dark blue dashboard
-✓ "GeoGuard" logo at top
-✓ Map of Chennai in the center
-✓ Colored zones (green, yellow, orange, red)
-✓ Statistics on the left
-✓ Alerts on the right
+Open your browser and navigate to:
+http://localhost:8000/frontend/index.html
 
 ═══════════════════════════════════════════════════════════
-❌ IF SOMETHING GOES WRONG
+✅ FEATURES IN V1
 ═══════════════════════════════════════════════════════════
-
-Problem: "Cannot load data" or blank map
-
-Solution:
-1. Press Ctrl+C in the command prompt
-2. Make sure you're in the GeoGuard folder (not web folder)
-3. Type: cd
-4. If it shows "...GeoGuard\web", type: cd ..
-5. Start server again: python -m http.server 8000
-6. Refresh browser
-
-═══════════════════════════════════════════════════════════
-
-Problem: "Port 8000 already in use"
-
-Solution:
-Use a different port:
-python -m http.server 8080
-
-Then open: http://localhost:8080/web/index.html
-
-═══════════════════════════════════════════════════════════
-
-Problem: Python not found
-
-Solution:
-1. Check if Python is installed: python --version
-2. If not installed, download from: https://www.python.org/
-3. During installation, check "Add Python to PATH"
-
-═══════════════════════════════════════════════════════════
-📞 FEATURES
-═══════════════════════════════════════════════════════════
-
-🗺️  Interactive Map
-   - Click zones to see details
-   - Hover to highlight
-   - Zoom in/out with mouse wheel
-
-📊 Risk Statistics
-   - Safe zones (green)
-   - Moderate risk (yellow)
-   - High risk (orange)
-   - Severe risk (red)
-
-🚨 Active Alerts
-   - Shows high-risk areas
-   - Real-time updates
-
-🏥 Emergency Contacts
-   - Emergency: 108
-   - Fire: 101
-   - Police: 100
-   - Disaster Management: 1070
-
-═══════════════════════════════════════════════════════════
-🛑 TO STOP THE SERVER
-═══════════════════════════════════════════════════════════
-
-Go to the command prompt window
-Press: Ctrl + C
-Type: Y
-Press: Enter
-
-═══════════════════════════════════════════════════════════
-
-Need more help? Check test.html first:
-http://localhost:8000/web/test.html
-
-═══════════════════════════════════════════════════════════
+- Chennai flood risk grid map (Low, Moderate, High, Severe)
+- 25 Relief shelters with live available capacity
+- Nearest shelter discovery
+- Safe evacuation routing with OSRM integration
+- Clean REST API endpoints at /api/*
+- PostgreSQL 18 + PostGIS 3.6 persistent storage

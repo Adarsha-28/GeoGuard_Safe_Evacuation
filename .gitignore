@@ -3,8 +3,10 @@ venv/
 .venv/
 env/
 
-# Environment variables
+# Environment variables & secrets
 .env
+*.key
+*.pem
 
 # Python cache files
 __pycache__/
@@ -12,6 +14,8 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Databases & local caches
 data/shelters.db

@@ -1,8 +1,6 @@
-from src.models.flood_prediction import fetch_and_predict, run_prediction_scenario
+"""GeoGuard V1 - Root Execution Launcher."""
+
+from backend.main import main
 
 if __name__ == "__main__":
-    print("GeoGuard - Flood Risk Prediction System")
-    print("=" * 50)
-
-    fetch_and_predict(api_key="2efc6badb1e0f099f544e8e84a4fc440")
-
+    main()
